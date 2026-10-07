@@ -9,15 +9,22 @@ Find what the app's billing gets wrong before customers do. Billing code that co
 
 ## How to audit
 
-1. Find the billing code: checkout, provider calls, webhook handlers, subscription and access models, scheduled jobs, schema. Note the provider and its API version, then read that provider's current docs. Don't trust memory.
-2. Work out what the app supports, like recurring or one-time plans, trials, plan changes, refunds, or multiple currencies. Skip cases for features it doesn't have.
-3. Go through every case under "What correct looks like" and trace the real code path for it. Don't judge from function names, comments, or docs.
-4. In a large codebase, split the work by area, like setup and checkout, webhooks, and access, and audit the areas in parallel.
-5. Read only. Don't change code unless the user asks.
+1. Understand the project before reading billing code. Read the README, product docs, domain glossary, pricing page, and schema. Answer:
+   - What's sold, and who pays whom. Directly to the business, or to sellers or creators through the platform.
+   - Which provider and API version, and which billing features exist: recurring, one-time, trials, seats, usage, plan changes, refunds, currencies.
+   - Where customers are. Renewal and mandate rules differ by region.
+   - Which billing decisions are documented on purpose, like "no refunds". Don't report a documented decision as a bug. Do report where code and docs disagree.
+2. Add cases that fit this project's model to the list under "What correct looks like". If sellers set prices, cover what happens when a seller changes a price, leaves, or gets suspended. Skip cases for features it doesn't have.
+3. Find the billing code: checkout, provider calls, webhook handlers, subscription and access models, scheduled jobs, schema. Read the provider's current docs for the API version in use. Don't trust memory.
+4. Go through every case and trace the real code path for it. Docs tell you what's intended. Only the code tells you what happens.
+5. In a large codebase, split the work by area, like setup and checkout, webhooks, and access, and audit the areas in parallel.
+6. Read only. Don't change code unless the user asks.
 
 ## Report
 
-Lead with the problems, worst first. Rank by harm: charging people wrongly, then wrong access, then lost revenue, then the rest.
+Open with two or three lines on what the project is and how money moves, so the user can catch a wrong assumption early.
+
+Then the problems, worst first. Rank by harm: charging people wrongly, then wrong access, then lost revenue, then the rest.
 
 For each problem give:
 
