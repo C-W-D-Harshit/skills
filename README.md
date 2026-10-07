@@ -33,8 +33,9 @@ Run it like this:
 Use billing-audit to check our billing and subscription edge cases. Tell me everything we're doing wrong.
 ```
 
-The agent finds your billing code, reads your provider's current docs, and traces each case through the real code path. It reports:
+The agent first maps your money flow from your docs: what's sold, who pays whom, and which billing decisions are on purpose. Then it finds your billing code, reads your provider's current docs, and traces every case through the real code path. It reports:
 
+- **The money flow**, in three lines, so you can catch a wrong assumption early.
 - **Problems, worst first.** Wrong charges, then wrong access, then lost revenue. Each one comes with a concrete scenario, the file and line, a one-line fix, and how sure the agent is.
 - **Can't tell from code.** Dashboard settings and business decisions it needs you to answer.
 - **Handled well.** What it checked and found fine.

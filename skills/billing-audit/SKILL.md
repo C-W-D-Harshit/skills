@@ -1,107 +1,138 @@
 ---
 name: billing-audit
-description: Audits an app's payments and subscriptions for billing edge cases and reports everything it gets wrong. Use when asked to check, review, or audit billing, subscriptions, checkout, payment webhooks, or paid access, with Stripe, Dodo, Paddle, Lemon Squeezy, Polar, Razorpay, or any other provider.
+description: Audit billing and subscriptions for edge-case bugs. Use when the user wants their billing, subscriptions, or payment webhooks audited.
 ---
 
-# Billing audit
+# Billing Audit
 
-Find what the app's billing gets wrong before customers do. Billing code that compiles proves nothing. Most real failures come from provider config and from cases nobody handled.
+Billing code that compiles proves nothing. Real failures come from provider config and from cases nobody handled. This skill **traces** every case in the Reference through the real code and reports where the app gets it wrong.
 
-## How to audit
+## Redact
 
-1. Understand the project before reading billing code. Read the README, product docs, domain glossary, pricing page, and schema. Answer:
-   - What's sold, and who pays whom. Directly to the business, or to sellers or creators through the platform.
-   - Which provider and API version, and which billing features exist: recurring, one-time, trials, seats, usage, plan changes, refunds, currencies.
-   - Where customers are. Renewal and mandate rules differ by region.
-   - Which billing decisions are documented on purpose, like "no refunds". Don't report a documented decision as a bug. Do report where code and docs disagree.
-2. Add cases that fit this project's model to the list under "What correct looks like". If sellers set prices, cover what happens when a seller changes a price, leaves, or gets suspended. Skip cases for features it doesn't have.
-3. Find the billing code: checkout, provider calls, webhook handlers, subscription and access models, scheduled jobs, schema. Read the provider's current docs for the API version in use. Don't trust memory.
-4. Go through every case and trace the real code path for it. Docs tell you what's intended. Only the code tells you what happens.
-5. In a large codebase, split the work by area, like setup and checkout, webhooks, and access, and audit the areas in parallel.
-6. Read only. Don't change code unless the user asks.
+Billing code sits next to live keys and customer data. Write `<REDACTED>` in place of every API key, webhook secret, and customer email, name, or card detail you quote. Calls to the provider are read-only: fetch and list, nothing that creates, updates, or charges.
 
-## Report
+## Process
 
-Open with two or three lines on what the project is and how money moves, so the user can catch a wrong assumption early.
+### 1. Map the money flow
 
-Then the problems, worst first. Rank by harm: charging people wrongly, then wrong access, then lost revenue, then the rest.
+Read the README, product docs, domain glossary, pricing page, and schema. Write down the **money flow**:
 
-For each problem give:
+- What's sold, and who pays whom: the business directly, or sellers and creators through the platform.
+- The provider, its API version, and the billing features in use: recurring, one-time, trials, seats, usage, plan changes, refunds, currencies.
+- Where customers are. Renewal and mandate rules differ by region.
+- **Documented decisions**: billing behavior the docs choose on purpose, like "no refunds". The code is judged against these.
 
-- What's wrong, in one sentence.
-- A concrete scenario with the starting state, what happens, and the wrong result.
-- File and line.
-- The fix, in one line.
-- How sure you are, and whether you traced it fully or are inferring.
+Done when you can state the money flow in three lines. It opens the report.
 
-Then three short lists:
+### 2. Fit the cases to the project
 
-- **Can't tell from code.** Dashboard settings and business decisions to ask the user about.
-- **Handled well.** One line each, so the user knows what you checked.
-- **Doesn't apply.** Cases you skipped and why.
+Mark each case in the Reference that the project's features rule out as **doesn't apply**. Add the cases the money flow implies and the Reference lacks. If sellers set prices, cover a seller changing a price, leaving, or getting suspended.
 
-## What correct looks like
+### 3. Find the billing code and the provider docs
+
+Locate checkout, provider calls, webhook handlers, subscription and access models, scheduled jobs, and schema. Read the provider's current docs for the API version in use. Provider behavior shifts between versions, and the docs are the source of truth for it.
+
+### 4. Trace every case
+
+For each case, **trace** the real code path from trigger to stored state to what the user sees. Docs give intent; the traced path gives behavior. A gap between them is a problem.
+
+Every case lands in exactly one bucket:
+
+- **Problem**: the traced path produces a wrong charge, wrong access, lost revenue, or other harm.
+- **Handled well**: traced, and it matches the Reference.
+- **Can't tell from code**: the answer lives in a dashboard setting or a business decision.
+- **Doesn't apply**: ruled out in step 2.
+
+Done when every case has a bucket.
+
+In a large codebase, split by area (setup and checkout, webhooks, access and cases) and run one sub-agent per area in parallel. Each sub-agent prompt includes:
+
+- The money flow and documented decisions from step 1.
+- Its sections of the Reference, pasted in full. The sub-agent has no other access to them.
+- The Redact rules and the four buckets.
+- The brief: "Trace every case in your sections and put each in exactly one bucket. For each problem, give the scenario, file and line, fix, and confidence."
+
+### 5. Report
+
+Present, in order:
+
+1. The money flow in three lines, so the user can catch a wrong assumption early.
+2. **Problems**, ranked by harm: wrong charges, then wrong access, then lost revenue, then the rest. For each:
+   - What's wrong, in one sentence.
+   - The scenario: starting state, what happens, wrong result.
+   - File and line.
+   - The fix, in one line.
+   - Confidence: fully traced, or inferred.
+3. **Can't tell from code**, as questions for the user.
+4. **Handled well**, one line each.
+5. **Doesn't apply**, each with its reason.
+
+Stop after the report. Fixes start when the user asks for them.
+
+## Reference
+
+What correct billing looks like. Each bullet is one case.
 
 ### Provider setup
 
-Some of this lives in the provider dashboard. Check it through the provider's API or CLI if you can. Otherwise list it under "Can't tell from code".
+Some of these live in the provider dashboard. Read them through the provider's API or CLI where you can; the rest go to **Can't tell from code**.
 
-- The product is recurring, not one-time.
-- Price and billing interval are right.
-- The subscription keeps renewing. If the provider needs a total length or cycle count, it's set long, and something handles it running out. Check the provider docs for how this works.
-- Trial length is what the business wants. Zero if none.
-- Test and live mode each have their own products, keys, webhook URL, and webhook secret. Test products usually don't copy to live.
+- The product is recurring.
+- Price and billing interval match the pricing page.
+- The subscription renews indefinitely. Where the provider requires a total length or cycle count, it's set long and something handles reaching it.
+- Trial length matches what the business wants, zero if none.
+- Test and live mode each have their own products, keys, webhook URL, and webhook secret. Products made in test mode usually need recreating in live.
 - The webhook endpoint subscribes to every event the code handles.
-- Someone owns tax, the app or a merchant of record. Every charge produces a receipt or invoice.
-- Money is stored as integers in each currency's smallest unit. Not every currency has 100 cents.
+- Tax has an owner, the app or a merchant of record, and every charge produces a receipt or invoice.
+- Money is stored as integers in each currency's smallest unit, with that currency's own precision. Some currencies, like the yen, have no minor unit.
 
 ### Webhooks and API calls
 
-- Every webhook is verified with the provider's mechanism, usually a signature over the raw body. No JSON parser or middleware touches the body first.
-- The same event can arrive many times. Events are deduped by ID, and each effect is idempotent too. One paid invoice extends access once and sends one receipt.
-- Events arrive out of order. Each event triggers a fetch of the subscription from the provider, or events older than the stored state get skipped. One subscription's events are processed one at a time. An old failed payment never overrides a newer successful one.
-- The user is found through a provider ID stored at checkout, not webhook metadata. An event that arrives before its subscription or user exists in the DB gets retried later, not dropped.
-- Every subscription status the provider can send is handled, not just active and canceled. Unknown statuses get logged and fail safe.
-- If the provider says a payment is still processing, the event gets retried later, not marked done.
-- The handler returns 2xx fast. A handler that dies halfway is safe to retry.
-- Every call that creates a charge, subscription, or refund sends an idempotency key tied to the user's action. Double clicks and two open tabs can't start two checkouts. After a timeout, the code checks whether the call went through before trying again.
-- The webhook can arrive late. The checkout success page asks the provider or shows a pending state.
-- Login and the rest of the app keep working when the provider is down or sends a plan the code doesn't know. If billing records can't be read, automatic charges and suspensions pause instead of guessing.
+- Every webhook is verified with the provider's mechanism, usually a signature computed over the raw body before any parser reads it.
+- Delivery is at-least-once. Events are deduped by ID, and each effect is idempotent: one paid invoice extends access once and sends one receipt.
+- Delivery order is arbitrary. Each event triggers a fresh fetch of the subscription from the provider, or events older than the stored state get skipped. One subscription's events are processed one at a time, so the newest payment outcome always wins.
+- The user is looked up by a provider ID stored at checkout. An event that arrives before its subscription or user exists gets retried until they do.
+- Every subscription status the provider can send has a handler. Unknown statuses get logged and fail safe.
+- An event whose payment is still processing gets retried and stays open until the outcome is known.
+- The handler acknowledges fast and is safe to rerun after dying halfway.
+- Every call that creates a charge, subscription, or refund carries an idempotency key tied to the user's action, so double clicks and two open tabs start one checkout. After a timeout, the code checks whether the call went through before retrying.
+- The checkout success page asks the provider for the result or shows a pending state, since the webhook can lag.
+- Login and the rest of the app keep working when the provider is down or sends an unknown plan. When billing records are unreadable, automatic charges and suspensions pause until they're readable again.
 
 ### Access
 
-- Access is computed in one place, from what the user actually paid for and until when. Not an `isPro` flag that events flip. An `active` status or a renewal event alone doesn't prove the money arrived.
-- Period ends come from the provider's timestamps, stored in UTC. Access ends exactly at the boundary.
-- DB, provider, and UI show the same plan and status.
+- Access is derived in one place from paid periods: what the user paid for, and until when. An `active` status or a renewal event counts once the payment is confirmed.
+- Period ends come from the provider's timestamps, stored in UTC, and access ends exactly at the boundary.
+- The DB, the provider, and the UI show the same plan and status. Any gap between them is **drift**.
 
-### Cases to handle
+### Cases
 
-- **Renewal payment fails.** There's a defined grace period or revoke. Retries are capped and stop on hard declines. Banks penalize endless retries.
+- **Renewal payment fails.** A defined grace period or immediate revoke applies. Retries are capped and stop on hard declines, since banks penalize repeated retries.
 - **Renewal needs the customer to authenticate.** They get a link to finish paying.
-- **User updates their card.** Renewals and retries use the new card.
-- **User cancels.** Access lasts until the period ends.
+- **User updates their card.** Renewals and retries charge the new card.
+- **User cancels.** Access lasts until the paid period ends.
 - **Provider cancels, pauses, or halts the subscription, or the user revokes autopay.** Access lasts for the paid period, renewals stop, and the user learns how to restart.
-- **User comes back after a lapse.** Old unpaid invoices get collected, kept, or waived on purpose.
-- **Refund or chargeback.** Access is revoked now or at period end, by a stated rule.
-- **Upgrade or downgrade mid-cycle.** Proration and timing are defined. The user sees the real charge first. Unpaid time never gets credited. A failed upgrade payment leaves the old plan untouched.
-- **User changes plans.** The existing subscription gets updated where the provider supports it. If it must be replaced, the old one is cancelled before the new one charges. Two live subscriptions never exist.
-- **User buys a second plan while one is active.** It's blocked, converted to a plan change, or stacked on purpose, across every purchase path, one-time and recurring.
-- **User starts checkout and never finishes.** The pending subscription gets cleaned up and doesn't block the next try.
-- **User leaves, gets removed, or deletes their account.** The subscription is cancelled at the provider. Where that's impossible, as with app stores, the user is told how.
-- **Trial ends with no payment method.** There's a defined outcome.
-- **A plan's price changes.** Existing subscribers keep their old price unless moved on purpose.
+- **User returns after a lapse.** Old unpaid invoices get collected, kept, or waived by a stated rule.
+- **Refund or chargeback.** Access ends now or at period end, by a stated rule.
+- **Upgrade or downgrade mid-cycle.** Proration and timing are defined, and the user sees the real charge before confirming. Credits cover only paid time. A failed upgrade payment leaves the old plan exactly as it was.
+- **User changes plans.** The existing subscription gets updated where the provider supports it. Where it must be replaced, the old one is cancelled before the new one charges, so the user holds one live subscription at a time.
+- **User buys a second plan while one is active.** It's blocked, converted to a plan change, or stacked on purpose, the same way across every purchase path, one-time and recurring.
+- **User abandons checkout.** The pending subscription gets cleaned up, and the next attempt starts fresh.
+- **User leaves, gets removed, or deletes their account.** The subscription is cancelled at the provider. Where the app can't cancel it, as with app stores, the user gets instructions.
+- **Trial ends with no payment method.** A defined outcome applies.
+- **A plan's price changes.** Existing subscribers keep their old price until moved on purpose.
 - **A plan gets retired.** Existing subscribers keep renewing, get moved, or get cancelled, by a stated rule.
 
 ### What the customer sees
 
 Auto-renewal and mandate rules differ by country and state. Ask the user which apply.
 
-- Before the first charge, the user sees the price, how often it renews, and how to cancel, and agrees. That consent is stored.
-- Users can cancel and update their card online, as easily as they signed up. Billing portal links are generated fresh each time.
+- Before the first charge, the user sees the price, renewal interval, and how to cancel, and agrees. The consent is stored.
+- Cancelling and updating a card work online, as easily as signing up. Billing portal links are generated fresh each time.
 - Renewal reminders, pre-debit notices, and price-change notices go out where the rules require them.
 
 ### Monitoring
 
 - Every webhook is logged with event ID, type, subscription ID, and result.
-- A scheduled job compares subscriptions, invoices, and charges with the provider and fixes or flags drift. A renewal whose webhook never arrived still counts.
-- An alert fires when webhooks stop arriving. Providers disable endpoints that keep failing.
+- A scheduled job compares subscriptions, invoices, and charges with the provider and fixes or flags **drift**, including renewals whose webhook never arrived.
+- An alert fires when webhooks stop arriving, since providers disable endpoints that keep failing.
