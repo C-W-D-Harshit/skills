@@ -1,0 +1,17 @@
+{
+  "name": "harshit",
+  "owner": {
+    "name": "Harshit Sharma",
+    "url": "https://github.com/C-W-D-Harshit"
+  },
+  "description": "Harshit's agent skills, as an installable Claude Code plugin.",
+  "plugins": [
+    {
+      "name": "harshit-skills",
+      "source": "./",
+      "description": "Harshit's agent skills, starting with billing-audit for payments and subscriptions.",
+      "category": "engineering",
+      "keywords": ["billing", "subscriptions", "payments", "audit"]
+    }
+  ]
+}

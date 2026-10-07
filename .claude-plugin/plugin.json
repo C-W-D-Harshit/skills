@@ -1,0 +1,13 @@
+{
+  "name": "harshit-skills",
+  "version": "0.1.0",
+  "description": "Harshit's agent skills. Starts with billing-audit, which checks an app's payments and subscriptions for the edge cases agents usually miss.",
+  "author": {
+    "name": "Harshit Sharma",
+    "url": "https://github.com/C-W-D-Harshit"
+  },
+  "repository": "https://github.com/C-W-D-Harshit/skills",
+  "license": "MIT",
+  "keywords": ["skills", "billing", "subscriptions", "payments", "webhooks", "audit"],
+  "skills": ["./skills/billing-audit"]
+}

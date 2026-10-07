@@ -1,0 +1,3 @@
+interface:
+  display_name: "Billing Audit"
+  short_description: "Find billing and subscription edge-case bugs"
