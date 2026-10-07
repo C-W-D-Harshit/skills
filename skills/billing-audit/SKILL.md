@@ -1,6 +1,6 @@
 ---
 name: billing-audit
-description: Audits an app's payments and subscriptions for billing edge cases and reports everything it gets wrong. Use when asked to check, review, or audit billing, subscriptions, checkout, payment webhooks, or paid access, with Stripe, Dodo, Paddle, Lemon Squeezy, Polar, Razorpay, or any other provider, including marketplaces where admins or creators set the plans and members pay.
+description: Audits an app's payments and subscriptions for billing edge cases and reports everything it gets wrong. Use when asked to check, review, or audit billing, subscriptions, checkout, payment webhooks, or paid access, with Stripe, Dodo, Paddle, Lemon Squeezy, Polar, Razorpay, or any other provider.
 ---
 
 # Billing audit
@@ -10,7 +10,7 @@ Find what the app's billing gets wrong before customers do. Billing code that co
 ## How to audit
 
 1. Find the billing code: checkout, provider calls, webhook handlers, subscription and access models, scheduled jobs, schema. Note the provider and its API version, then read that provider's current docs. Don't trust memory.
-2. Work out what the app supports, like recurring or one-time plans, trials, plan changes, refunds, multiple currencies, or admin-created plans. Skip cases for features it doesn't have.
+2. Work out what the app supports, like recurring or one-time plans, trials, plan changes, refunds, or multiple currencies. Skip cases for features it doesn't have.
 3. Go through every case under "What correct looks like" and trace the real code path for it. Don't judge from function names, comments, or docs.
 4. In a large codebase, split the work by area, like setup and checkout, webhooks, and access, and audit the areas in parallel.
 5. Read only. Don't change code unless the user asks.
@@ -82,6 +82,8 @@ Some of this lives in the provider dashboard. Check it through the provider's AP
 - **User starts checkout and never finishes.** The pending subscription gets cleaned up and doesn't block the next try.
 - **User leaves, gets removed, or deletes their account.** The subscription is cancelled at the provider. Where that's impossible, as with app stores, the user is told how.
 - **Trial ends with no payment method.** There's a defined outcome.
+- **A plan's price changes.** Existing subscribers keep their old price unless moved on purpose.
+- **A plan gets retired.** Existing subscribers keep renewing, get moved, or get cancelled, by a stated rule.
 
 ### What the customer sees
 
@@ -90,15 +92,6 @@ Auto-renewal and mandate rules differ by country and state. Ask the user which a
 - Before the first charge, the user sees the price, how often it renews, and how to cancel, and agrees. That consent is stored.
 - Users can cancel and update their card online, as easily as they signed up. Billing portal links are generated fresh each time.
 - Renewal reminders, pre-debit notices, and price-change notices go out where the rules require them.
-
-### When admins create the plans
-
-Applies when a community admin, creator, or seller creates the tier and members pay.
-
-- **Admin edits price or term.** Existing subscribers keep their old terms unless moved on purpose.
-- **Admin archives or deletes a tier.** Existing subscribers keep renewing, get moved, or get cancelled, by a stated rule.
-- **Admin's payout account gets suspended, paid plans get turned off, or the community gets suspended or deleted.** Renewals stop, or collection continues with the money held on purpose. Nothing keeps charging for access that no longer exists.
-- **Payout to the admin fails.** It gets retried or flagged, never dropped.
 
 ### Monitoring
 

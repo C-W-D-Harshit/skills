@@ -40,7 +40,7 @@ The agent finds your billing code, reads your provider's current docs, and trace
 - **Handled well.** What it checked and found fine.
 - **Doesn't apply.** Cases it skipped and why.
 
-It covers provider setup, webhooks and API calls, access, failed renewals, cancels, refunds, plan changes, duplicate purchases, what the customer sees, marketplaces where admins create the plans, and monitoring. It works with any provider, including Stripe, Dodo, Paddle, Lemon Squeezy, Polar, and Razorpay. It only reads your code and doesn't change anything unless you ask.
+It covers provider setup, webhooks and API calls, access, failed renewals, cancels, refunds, plan changes, duplicate purchases, what the customer sees, and monitoring. It works with any provider, including Stripe, Dodo, Paddle, Lemon Squeezy, Polar, and Razorpay. It only reads your code and doesn't change anything unless you ask.
 
 ## License
 
